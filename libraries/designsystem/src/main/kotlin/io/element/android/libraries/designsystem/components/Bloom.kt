@@ -107,6 +107,7 @@ import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewGroup
+import io.element.android.libraries.designsystem.text.roundToPx
 import io.element.android.libraries.designsystem.text.toDp
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.MediumTopAppBar
@@ -118,6 +119,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -327,7 +329,6 @@ fun Modifier.avatarBloom(
 
     // Request the avatar contents to use as the bloom source
     val context = LocalContext.current
-    val density = LocalDensity.current
     if (avatarData.url != null) {
         val painterRequest = remember(avatarData) {
             ImageRequest.Builder(context)
@@ -337,7 +338,7 @@ fun Modifier.avatarBloom(
                 // Needed to be able to read pixels from the Bitmap for the hash
                 .allowHardware(false)
                 // Reduce size so it loads faster for large avatars
-                .size(with(density) { Size(64.dp.roundToPx(), 64.dp.roundToPx()) })
+                .size(32,32)
                 .build()
         }
 
@@ -345,14 +346,17 @@ fun Modifier.avatarBloom(
         var blurHash by rememberSaveable(avatarData) { mutableStateOf<String?>(null) }
         LaunchedEffect(avatarData) {
             withContext(Dispatchers.IO) {
+                Timber.d("AAAABBBB start image request")
                 val drawable =
                     context.imageLoader.execute(painterRequest).drawable ?: return@withContext
                 val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return@withContext
+                Timber.d("AAAABBBB start blur")
                 blurHash = BlurHash.encode(
                     bitmap,
                     BloomDefaults.HASH_COMPONENTS,
                     BloomDefaults.HASH_COMPONENTS
                 )
+                Timber.d("AAAABBBB end blur")
             }
         }
 
